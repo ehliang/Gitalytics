@@ -1,6 +1,7 @@
 var express = require('express'),
     request = require('request'),
     config = require('./config'),
+    Cookies = require('cookies'),
     fs = require('fs'),
   	path = require('path'),
   	bodyParser = require('body-parser'), 
@@ -49,13 +50,6 @@ var authorization_uri = oauth2.authCode.authorizeURL({
   state: '3(#0/!~'
 });
 
-app.get('/', function (req, res) {
-	console.log(token);
-    if(token != null){
-      res.redirect('/app');
-    }
-});
-
   // Initial page redirecting to Github
 app.get('/auth', function (req, res) {
     res.redirect(authorization_uri);
@@ -75,14 +69,44 @@ app.get('/callback', function (req, res) {
 
   function saveToken(error, result) {
     if (error) { console.log('Access Token Error', error.message); }
-    token = oauth2.accessToken.create(result);
-	github.authenticate({
-		type: "oauth",
-		token: token
-	});
-    res.redirect('/app');
+    var token = oauth2.accessToken.create(result);
+    console.log(result);
+    console.log(token);
+		new Cookies(req,res).set('access_token',result,{
+		      httpOnly: true,
+		        //secure: true      // for your production environment
+	    });
+    res.redirect('/');
   }
 });
+app.get('/', function(req, res) {
+	var cookies = new Cookies(req, res);
+	
+  	var token = cookies.get( "access_token" );
+	console.log('token ' + token);
+	//oauth2.authCode.getToken(function(error, token) {
+		/*if (token.expired()) {
+			token.refresh(function(error, result) {
+				token = result;
+			});
+		}
+		console.log(token.error);*/
+	if (typeof token == 'undefined') {
+		res.send('Hello<br><a href="/auth">Log in with Github</a>');
+	} else {
+		var url = 'https://api.github.com/user?' + token;
+		request.get({
+			url: url,
+			headers: {/*'Authorization': result,*/ 'user-agent': 'velocity' },
+			json: true
+		}, function(error, response, body) {
+			console.log(body);
+			res.send("Welcome! " + body.login);
+		});
+		console.log(token);
+	}
+});
+
 app.listen(config.PORT, 'localhost', function() {
 	console.log('Express server started on localhost: ' + config.PORT);
 });

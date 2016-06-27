@@ -1,6 +1,6 @@
 module.exports = function(router, request, config) {
 	router.get('/publicrepo', function(req, res){
-	var publicrepo = [];
+	var publicrepo = []; 
 	var contributorList;
 	var getContributors = function(repo, callback){
 		var url = 'https://api.github.com/repos/' + repo.full_name+ '/contributors' + '?' 			+ 'client_id=' + config.CLIENT_ID + '&client_secret=' + config.CLIENT_SECRET;
